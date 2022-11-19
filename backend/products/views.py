@@ -1,4 +1,4 @@
-from rest_framework import generics
+from rest_framework import generics,mixins;
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from django.shortcuts import get_object_or_404
@@ -55,7 +55,7 @@ class ProductUpdateAPIVIEW(generics.UpdateAPIView):
   
 product_update_view = ProductUpdateAPIVIEW.as_view()
 
-class ProductDeleteAPIVIEW(generics.UpdateAPIView):
+class ProductDeleteAPIVIEW(generics.DestroyAPIView):
   queryset = Product.objects.all()
   serializer_class = ProductSerializer
   lookup_field = 'pk'
@@ -75,6 +75,31 @@ class ProductListAPIVIEW(generics.ListAPIView):
   serializer_class = ProductSerializer
   
 product_list_detail_view = ProductListAPIVIEW.as_view()
+
+class ProductMixinView(mixins.ListModelMixin, mixins.CreateModelMixin, mixins.RetrieveModelMixin,generics.GenericAPIView):
+  queryset = Product.objects.all()
+  serializer_class = ProductSerializer
+  lookup_field = 'pk'
+  def get(self,request,*args,**kwargs):
+    print(args,kwargs)
+    pk = kwargs.get("pk")
+    if pk is not None:
+      return self.retrieve(request,*args,**kwargs)
+    return self.list(request,*args,**kwargs)
+  
+  def post(self,request,*args,**kwargs):
+    return self.create(request,*args,**kwargs)
+  def perform_create(self, serializer):
+    # serializer.save(user=self.request.user)
+    #print(serializer.validated_data)
+    title = serializer.validated_data.get("title")
+    content = serializer.validated_data.get("content") or None
+    if content is None:
+      content = title
+    serializer.save(content = content)
+    
+product_mixim_view = ProductMixinView.as_view()
+
 @api_view(['GET','POST'])
 def product_alt_view(request, pk=None, *args, **kwargs):
   method = request.method
